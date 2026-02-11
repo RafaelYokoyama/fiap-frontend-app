@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Send, Search, Bell, Heart, Loader2, BookOpen } from 'lucide-react'
 import { useChat } from '@/hooks/useChat'
 import { useSpeech } from '@/hooks/useSpeech'
@@ -13,27 +13,13 @@ const Index = () => {
     messages,
     favorites,
     isLoading,
+    isLoadingInitial,
     ask,
     toggleFavorite,
     removeFavorite
   } = useChat()
   const { speak, stop, isSpeaking, speakingId } = useSpeech()
   const inputRef = useRef<HTMLInputElement>(null)
-  const hasLoaded = useRef(false)
-
-  useEffect(() => {
-    if (hasLoaded.current) return
-    hasLoaded.current = true
-    const initialQuestions = [
-      'O que é React?',
-      'O que é TypeScript?',
-      'O que é Tailwind CSS?',
-      'O que é JavaScript?',
-      'O que é HTML?',
-      'O que é CSS?'
-    ]
-    initialQuestions.forEach((q) => ask(q))
-  }, [ask])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +34,8 @@ const Index = () => {
     ? messages.filter(
         (m) =>
           m.question.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          m.answer.toLowerCase().includes(searchFilter.toLowerCase())
+          m.answer.toLowerCase().includes(searchFilter.toLowerCase()) ||
+          (m.useCase?.toLowerCase().includes(searchFilter.toLowerCase()) ?? false)
       )
     : messages
 
@@ -173,7 +160,7 @@ const Index = () => {
           </p>
         </div>
 
-        {filteredMessages.length === 0 && !isLoading ? (
+        {filteredMessages.length === 0 && !isLoading && !isLoadingInitial ? (
           <div className='bg-card/50 p-12 rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-center'>
             <div className='w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4'>
               <BookOpen className='h-8 w-8 text-muted-foreground' />
@@ -187,19 +174,20 @@ const Index = () => {
           </div>
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {filteredMessages.map((msg) => (
+            {(isLoadingInitial ? [] : filteredMessages).map((msg) => (
               <WordCard
                 key={msg.id}
                 id={msg.id}
                 question={msg.question}
                 answer={msg.answer}
+                useCase={msg.useCase}
                 isFavorite={msg.isFavorite}
                 onToggleFavorite={toggleFavorite}
                 onSpeak={speak}
                 isCurrentlySpeaking={speakingId === msg.id}
               />
             ))}
-            {isLoading && (
+            {(isLoading || isLoadingInitial) && (
               <>
                 <SkeletonCard />
                 <SkeletonCard />
@@ -242,7 +230,6 @@ const Index = () => {
             </h4>
             <ul className='space-y-2 text-sm text-muted-foreground'>
               <li>API: adrianorabello.com/ask</li>
-              <li>React + Tailwind</li>
               <li>Stitch Theme 💙</li>
             </ul>
           </div>
